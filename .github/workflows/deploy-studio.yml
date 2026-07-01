@@ -13,6 +13,9 @@ concurrency:
   group: studio-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  SANITY_STUDIO_PREVIEW_ORIGIN: https://www.virtuallybuilt.dev
+
 jobs:
   build:
     runs-on: ubuntu-latest
