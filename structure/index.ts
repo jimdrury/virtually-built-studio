@@ -1,7 +1,7 @@
-import {PlayIcon, UsersIcon} from '@sanity/icons'
+import {PlayIcon, UserIcon, UsersIcon} from '@sanity/icons'
 import type {StructureResolver} from 'sanity/structure'
 
-const pinnedTypes = new Set(['episode', 'guest'])
+const pinnedTypes = new Set(['episode', 'guest', 'host'])
 
 export const structure: StructureResolver = (S) =>
   S.list()
@@ -15,6 +15,10 @@ export const structure: StructureResolver = (S) =>
             .title('Episodes')
             .defaultOrdering([{field: 'publishedAt', direction: 'desc'}]),
         ),
+      S.listItem()
+        .title('Hosts')
+        .icon(UserIcon)
+        .child(S.documentTypeList('host').title('Hosts')),
       S.listItem()
         .title('Guests')
         .icon(UsersIcon)

@@ -1,8 +1,17 @@
+export type TranscriptSpeaker = {
+  ref: string
+  name: string
+}
+
 export type TranscriptEntry = {
   _type: 'transcriptEntry'
   _key: string
   start: number
-  speaker: string
+  speaker: {
+    _type: 'reference'
+    _ref: string
+    _key: string
+  }
   text: string
 }
 
@@ -37,12 +46,11 @@ export const generateTranscript = ({
   title,
 }: {
   durationMinutes: number
-  speakers: string[]
+  speakers: TranscriptSpeaker[]
   title: string
 }): TranscriptEntry[] => {
-  if (speakers.length === 0) {
-    speakers = ['Host']
-  }
+  const resolvedSpeakers =
+    speakers.length > 0 ? speakers : [{ref: 'unknown-host', name: 'Host'}]
 
   const paragraphCount = Math.min(
     PARAGRAPH_TEMPLATES.length,
@@ -52,15 +60,19 @@ export const generateTranscript = ({
   const interval = Math.floor(totalSeconds / paragraphCount)
 
   return Array.from({ length: paragraphCount }, (_, index) => {
-    const speaker = speakers[index % speakers.length]
+    const speaker = resolvedSpeakers[index % resolvedSpeakers.length]
     const template = PARAGRAPH_TEMPLATES[index % PARAGRAPH_TEMPLATES.length]
 
     return {
       _type: 'transcriptEntry' as const,
       _key: `transcript-${String(index).padStart(2, '0')}`,
       start: index * interval,
-      speaker,
-      text: template(title, speaker),
+      speaker: {
+        _type: 'reference' as const,
+        _ref: speaker.ref,
+        _key: `speaker-${speaker.ref}`,
+      },
+      text: template(title, speaker.name),
     }
   })
 }
