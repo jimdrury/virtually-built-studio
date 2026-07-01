@@ -92,6 +92,85 @@ export const episode = defineType({
       type: 'array',
       of: [{type: 'block'}],
     }),
+    defineField({
+      name: 'youtubeUrl',
+      title: 'YouTube URL',
+      type: 'url',
+      validation: (rule) =>
+        rule
+          .required()
+          .uri({
+            scheme: ['https'],
+            allowRelative: false,
+          })
+          .custom((value) => {
+            if (typeof value !== 'string') {
+              return true
+            }
+
+            try {
+              const hostname = new URL(value).hostname.replace(/^www\./, '')
+
+              if (hostname === 'youtube.com' || hostname === 'youtu.be') {
+                return true
+              }
+
+              return 'Must be a YouTube URL (youtube.com or youtu.be)'
+            } catch {
+              return 'Must be a valid URL'
+            }
+          }),
+    }),
+    defineField({
+      name: 'transcript',
+      title: 'Transcript',
+      type: 'array',
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'transcriptEntry',
+          fields: [
+            defineField({
+              name: 'start',
+              title: 'Start (seconds)',
+              type: 'number',
+              validation: (rule) => rule.required().min(0),
+            }),
+            defineField({
+              name: 'speaker',
+              title: 'Speaker',
+              type: 'string',
+              validation: (rule) => rule.required(),
+            }),
+            defineField({
+              name: 'text',
+              title: 'Text',
+              type: 'text',
+              rows: 3,
+              validation: (rule) => rule.required(),
+            }),
+          ],
+          preview: {
+            select: {
+              start: 'start',
+              speaker: 'speaker',
+              text: 'text',
+            },
+            prepare({start, speaker, text}) {
+              const timestamp =
+                typeof start === 'number'
+                  ? `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}`
+                  : '00:00'
+
+              return {
+                title: `${timestamp} · ${speaker ?? 'Unknown'}`,
+                subtitle: typeof text === 'string' ? text.slice(0, 80) : undefined,
+              }
+            },
+          },
+        }),
+      ],
+    }),
   ],
   orderings: [
     {
