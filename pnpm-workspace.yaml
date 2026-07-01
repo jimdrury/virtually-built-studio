@@ -1,0 +1,14 @@
+allowBuilds:
+  esbuild: set this to true or false
+minimumReleaseAgeExclude:
+  - '@sanity/cli-build@2.0.0'
+  - '@sanity/cli-core@2.1.2'
+  - '@sanity/cli@7.4.2'
+  - '@sanity/diff@6.3.0'
+  - '@sanity/mutator@6.3.0'
+  - '@sanity/schema@6.3.0'
+  - '@sanity/types@6.3.0'
+  - '@sanity/util@6.3.0'
+  - '@sanity/vision@6.3.0'
+  - '@sanity/workbench-cli@1.1.2'
+  - sanity@6.3.0
