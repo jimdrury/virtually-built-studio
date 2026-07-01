@@ -10,7 +10,10 @@ const ARTWORK_ASSET_REF =
   'image-cbd1fa822dbfd1848267c8dbe8f152f7286011ce-1376x768-jpg'
 const HOST_JIM_REF = '08f92296-f091-4fc6-a920-857a42f251db'
 const HOST_MATTHEW_REF = 'host-matthew-law'
-const HOST_SPEAKER_NAMES = ['Jim Drury', 'Matthew Law']
+const HOST_SPEAKERS = [
+  {ref: HOST_JIM_REF, name: 'Jim Drury'},
+  {ref: HOST_MATTHEW_REF, name: 'Matthew Law'},
+]
 const LEGACY_EPISODE_IDS = [
   '6e76fa04-9b80-4ccd-8dc1-234dabca68e8',
   '35ca8847-a097-448b-b8f0-81fcadcc6f96',
@@ -103,7 +106,14 @@ const buildEpisodeDocument = (
   const guestNames = guestIds
     .map((guestId) => guestNameById.get(guestId))
     .filter((name): name is string => Boolean(name))
-  const speakers = [...HOST_SPEAKER_NAMES, ...guestNames]
+  const speakers = [
+    ...HOST_SPEAKERS,
+    ...guestIds.flatMap((guestId) => {
+      const name = guestNameById.get(guestId)
+
+      return name ? [{ref: guestId, name}] : []
+    }),
+  ]
 
   return {
     _id: episodeDocumentId(episodeNumber),
@@ -145,6 +155,21 @@ const seedEpisodes = async () => {
   }
 
   const client = getCliClient()
+
+  const existingEpisodes = await client.fetch<Array<{_id: string}>>(`*[_type == "episode"]{_id}`)
+
+  if (existingEpisodes.length > 0) {
+    const cleanup = client.transaction()
+
+    for (const episode of existingEpisodes) {
+      cleanup.delete(episode._id)
+    }
+
+    await cleanup.commit()
+
+    console.log(`Removed ${existingEpisodes.length} existing episode documents before seeding.`)
+  }
+
   const guestAssignments = assignGuestsToEpisodes(
     EPISODE_COUNT,
     GUEST_DEFINITIONS.map((guest) => guest.id),
