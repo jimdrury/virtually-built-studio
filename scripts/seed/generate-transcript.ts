@@ -29,7 +29,7 @@ const PARAGRAPH_TEMPLATES = [
     `We close by connecting ${title.toLowerCase()} back to product craft — and what listeners can try this week.`,
 ]
 
-export const SEED_YOUTUBE_URL = 'https://www.youtube.com/watch?v=Bgltju_XaEY'
+export const SEED_YOUTUBE_URL = 'https://www.youtube.com/watch?v=Bp2ai2MD4Mk'
 
 export const generateTranscript = ({
   durationMinutes,
