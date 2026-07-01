@@ -3,12 +3,14 @@ import {getCliClient} from 'sanity/cli'
 import {buildEpisodeSlug, episodeDocumentId} from '../lib/episode-slug'
 import {assignGuestsToEpisodes} from './seed/assign-guests'
 import {EPISODE_COUNT, EPISODE_DEFINITIONS} from './seed/episode-definitions'
+import {generateTranscript, SEED_YOUTUBE_URL} from './seed/generate-transcript'
 import {GUEST_DEFINITIONS} from './seed/guest-definitions'
 
 const ARTWORK_ASSET_REF =
   'image-cbd1fa822dbfd1848267c8dbe8f152f7286011ce-1376x768-jpg'
 const HOST_JIM_REF = '08f92296-f091-4fc6-a920-857a42f251db'
 const HOST_MATTHEW_REF = 'host-matthew-law'
+const HOST_SPEAKER_NAMES = ['Jim Drury', 'Matthew Law']
 const LEGACY_EPISODE_IDS = [
   '6e76fa04-9b80-4ccd-8dc1-234dabca68e8',
   '35ca8847-a097-448b-b8f0-81fcadcc6f96',
@@ -101,6 +103,7 @@ const buildEpisodeDocument = (
   const guestNames = guestIds
     .map((guestId) => guestNameById.get(guestId))
     .filter((name): name is string => Boolean(name))
+  const speakers = [...HOST_SPEAKER_NAMES, ...guestNames]
 
   return {
     _id: episodeDocumentId(episodeNumber),
@@ -127,6 +130,12 @@ const buildEpisodeDocument = (
       alt: `${definition.title} artwork`,
     },
     showNotes: showNotesForEpisode(definition.title, guestNames),
+    youtubeUrl: SEED_YOUTUBE_URL,
+    transcript: generateTranscript({
+      durationMinutes: definition.durationMinutes,
+      speakers,
+      title: definition.title,
+    }),
   }
 }
 
@@ -200,16 +209,39 @@ const seedEpisodes = async () => {
     )
   }
 
-  const [episodeCount, guestCount, episodesWithGuests] = await Promise.all([
-    client.fetch<number>('count(*[_type == "episode"])'),
-    client.fetch<number>('count(*[_type == "guest"])'),
-    client.fetch<number>('count(*[_type == "episode" && count(guests) > 0])'),
-  ])
+  const staleDraftEpisodes = await client.fetch<Array<{_id: string}>>(
+    `*[_type == "episode" && _id in path("drafts.**")]{_id}`,
+  )
+
+  if (staleDraftEpisodes.length > 0) {
+    const cleanup = client.transaction()
+
+    for (const episode of staleDraftEpisodes) {
+      cleanup.delete(episode._id)
+    }
+
+    await cleanup.commit()
+
+    console.warn(
+      `Removed ${staleDraftEpisodes.length} stale draft episode documents that were overriding published content.`,
+    )
+  }
+
+  const [episodeCount, guestCount, episodesWithGuests, episodesWithYoutube] =
+    await Promise.all([
+      client.fetch<number>('count(*[_type == "episode"])'),
+      client.fetch<number>('count(*[_type == "guest"])'),
+      client.fetch<number>('count(*[_type == "episode" && count(guests) > 0])'),
+      client.fetch<number>('count(*[_type == "episode" && defined(youtubeUrl)])'),
+    ])
 
   console.log(`Seeded ${GUEST_DEFINITIONS.length} guests.`)
   console.log(`Seeded ${EPISODE_COUNT} episodes with stable IDs 001 … 036.`)
   console.log(
     `${episodesWithGuests} of ${episodeCount} episodes include guests (${Math.round((episodesWithGuests / episodeCount) * 100)}%).`,
+  )
+  console.log(
+    `${episodesWithYoutube} of ${episodeCount} episodes include a YouTube URL.`,
   )
   console.log(`Dataset now contains ${episodeCount} episodes and ${guestCount} guests.`)
 }
