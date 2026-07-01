@@ -1,5 +1,5 @@
 import {episode} from './episode'
+import {guest} from './guest'
 import {host} from './host'
-import {post} from './post'
 
-export const schemaTypes = [episode, host, post]
+export const schemaTypes = [episode, guest, host]

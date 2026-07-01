@@ -10,6 +10,7 @@
     "deploy:ci": "sanity deploy --yes --schema-required --url virtually-built",
     "deploy-graphql": "sanity graphql deploy",
     "dev": "sanity dev",
+    "seed:episodes": "sanity exec scripts/seed-episodes.ts --with-user-token",
     "start": "sanity start"
   },
   "keywords": [

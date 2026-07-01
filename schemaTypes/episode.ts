@@ -1,6 +1,8 @@
 import {PlayIcon} from '@sanity/icons'
 import {defineArrayMember, defineField, defineType} from 'sanity'
 
+import {buildEpisodeSlug} from '../lib/episode-slug'
+
 const defaultHosts = [
   {_type: 'reference', _ref: 'host-matthew-law', _key: 'host-matthew-law'},
 ]
@@ -27,13 +29,26 @@ export const episode = defineType({
       name: 'slug',
       title: 'Slug',
       type: 'slug',
-      options: {source: 'title'},
+      options: {
+        source: (document): string => {
+          const episodeNumber = document?.episodeNumber
+          const title = document?.title
+
+          if (typeof episodeNumber !== 'number' || typeof title !== 'string') {
+            return typeof title === 'string' ? title : ''
+          }
+
+          return buildEpisodeSlug(episodeNumber, title)
+        },
+        slugify: (input) => String(input),
+      },
       validation: (rule) => rule.required(),
     }),
     defineField({
-      name: 'guestName',
-      title: 'Guest name',
-      type: 'string',
+      name: 'guests',
+      title: 'Guests',
+      type: 'array',
+      of: [defineArrayMember({type: 'reference', to: [{type: 'guest'}]})],
     }),
     defineField({
       name: 'hosts',
@@ -94,10 +109,9 @@ export const episode = defineType({
     select: {
       title: 'title',
       episodeNumber: 'episodeNumber',
-      guestName: 'guestName',
       media: 'artwork',
     },
-    prepare({title, episodeNumber, guestName, media}) {
+    prepare({title, episodeNumber, media}) {
       const number =
         typeof episodeNumber === 'number'
           ? String(episodeNumber).padStart(3, '0')
@@ -105,7 +119,6 @@ export const episode = defineType({
 
       return {
         title: number ? `${number} · ${title}` : title,
-        subtitle: guestName ? `with ${guestName}` : undefined,
         media,
       }
     },
